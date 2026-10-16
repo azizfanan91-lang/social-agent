@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تسجيل الدخول</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+body{font-family:sans-serif;background:#0f172a;color:#fff;margin:0;padding:20px}
+.card{background:#1e293b;border-radius:12px;padding:16px;max-width:400px;margin:20px auto}
+input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border-radius:8px;border:0;font-size:16px}
+button{width:100%;padding:12px;margin-top:8px;border:0;border-radius:8px;font-size:16px;color:#fff;background:#6366f1}
+button.alt{background:#334155}
+#msg{margin-top:12px;color:#fbbf24;min-height:20px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>🤖 تسجيل الدخول</h2>
+  <input id="email" type="email" placeholder="البريد الإلكتروني">
+  <input id="password" type="password" placeholder="كلمة السر (6 أحرف على الأقل)">
+  <button onclick="login()">دخول</button>
+  <button class="alt" onclick="signup()">إنشاء حساب</button>
+  <div id="msg"></div>
+</div>
+<script>
+const sb = supabase.createClient(
+  "https://rvwzwpennszchbvhboct.supabase.co",
+  "sb_publishable_W0Goga6-pKGR6ew_UhfIaA_qYY0S2ow"
+);
+const msg = t => document.getElementById("msg").textContent = t;
+const val = id => document.getElementById(id).value.trim();
+
+async function signup() {
+  const { error } = await sb.auth.signUp({ email: val("email"), password: val("password") });
+  msg(error ? "خطأ: " + error.message : "تم! شوف الإيميل ديالك وأكد الحساب.");
+}
+async function login() {
+  const { error } = await sb.auth.signInWithPassword({ email: val("email"), password: val("password") });
+  if (error) msg("خطأ: " + error.message);
+  else location.href = "/";
+}
+sb.auth.getSession().then(({ data }) => { if (data.session) msg("أنت مسجل الدخول ✅"); });
+</script>
+</body>
+</html>
