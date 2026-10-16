@@ -8,15 +8,24 @@
     body { font-family: sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; }
     h1 { font-size: 22px; }
     .card { background: #1e293b; border-radius: 12px; padding: 16px; margin: 12px 0; }
-    button { background: #6366f1; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 16px; }
+    button { background: #6366f1; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    button.secondary { background: #334155; margin-right: 8px; }
     #status { color: #4ade80; }
+    .muted { color: #cbd5e1; }
+    .error { color: #fca5a5; }
+    .channel { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .channel img { width: 48px; height: 48px; border-radius: 50%; }
   </style>
 </head>
 <body>
   <h1>🤖 وكيل التواصل الاجتماعي</h1>
   <div class="card">حالة الخادم: <span id="status">...</span></div>
-  <div class="card">YouTube: غير مربوط</div>
-  <div class="card">Facebook / Instagram: غير مربوط</div>
+  <div class="card">
+    <strong>YouTube</strong>
+    <div id="youtube-state" class="muted">جاري الفحص...</div>
+    <div id="youtube-actions" style="margin-top: 12px;"></div>
+  </div>
+  <div class="card">Facebook / Instagram: <span class="muted">غير مربوط حاليًا</span></div>
   <button onclick="check()">فحص الخادم</button>
   <script>
     async function check() {
@@ -28,7 +37,34 @@
         document.getElementById("status").textContent = "غير متصل ❌";
       }
     }
+    async function loadYouTube() {
+      const state = document.getElementById("youtube-state");
+      const actions = document.getElementById("youtube-actions");
+      const params = new URLSearchParams(location.search);
+      const error = params.get("youtube_error");
+      if (error) state.innerHTML = `<span class="error">تعذر الربط: ${escapeHtml(error)}</span>`;
+      try {
+        const r = await fetch("/api/youtube/status");
+        const data = await r.json();
+        if (data.connected) {
+          const c = data.channel;
+          state.innerHTML = `<div class="channel">${c.thumbnail ? `<img src="${escapeHtml(c.thumbnail)}" alt="">` : ""}<div><strong>${escapeHtml(c.title)}</strong><br><span class="muted">مربوط ✅</span></div></div>`;
+          actions.innerHTML = `<button class="secondary" onclick="location.href='/api/auth/youtube'">إعادة الربط</button>`;
+        } else {
+          if (!error) state.textContent = "غير مربوط";
+          actions.innerHTML = `<button onclick="location.href='/api/auth/youtube'">ربط حساب YouTube</button>`;
+        }
+      } catch (_) {
+        state.textContent = "تعذر فحص حالة YouTube";
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+
     check();
+    loadYouTube();
   </script>
 </body>
 </html>
