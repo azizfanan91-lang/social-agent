@@ -1,70 +1,73 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>وكيل التواصل الاجتماعي</title>
-  <style>
-    body { font-family: sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; }
-    h1 { font-size: 22px; }
-    .card { background: #1e293b; border-radius: 12px; padding: 16px; margin: 12px 0; }
-    button { background: #6366f1; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 16px; cursor: pointer; }
-    button.secondary { background: #334155; margin-right: 8px; }
-    #status { color: #4ade80; }
-    .muted { color: #cbd5e1; }
-    .error { color: #fca5a5; }
-    .channel { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-    .channel img { width: 48px; height: 48px; border-radius: 50%; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>وكيل التواصل الاجتماعي</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+body{font-family:sans-serif;background:#0f172a;color:#fff;margin:0;padding:20px}
+.card{background:#1e293b;border-radius:12px;padding:16px;margin:12px 0}
+textarea,select{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border-radius:8px;border:0;font-size:16px}
+button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px}
+button.alt{background:#334155}
+.post{border-top:1px solid #334155;padding:8px 0}
+small{color:#94a3b8}
+</style>
 </head>
 <body>
-  <h1>🤖 وكيل التواصل الاجتماعي</h1>
-  <div class="card">حالة الخادم: <span id="status">...</span></div>
-  <div class="card">
-    <strong>YouTube</strong>
-    <div id="youtube-state" class="muted">جاري الفحص...</div>
-    <div id="youtube-actions" style="margin-top: 12px;"></div>
-  </div>
-  <div class="card">Facebook / Instagram: <span class="muted">غير مربوط حاليًا</span></div>
-  <button onclick="check()">فحص الخادم</button>
-  <script>
-    async function check() {
-      try {
-        const r = await fetch("/api/health");
-        const d = await r.json();
-        document.getElementById("status").textContent = d.status === "ok" ? "يعمل ✅" : "مشكل";
-      } catch (e) {
-        document.getElementById("status").textContent = "غير متصل ❌";
-      }
-    }
-    async function loadYouTube() {
-      const state = document.getElementById("youtube-state");
-      const actions = document.getElementById("youtube-actions");
-      const params = new URLSearchParams(location.search);
-      const error = params.get("youtube_error");
-      if (error) state.innerHTML = `<span class="error">تعذر الربط: ${escapeHtml(error)}</span>`;
-      try {
-        const r = await fetch("/api/youtube/status");
-        const data = await r.json();
-        if (data.connected) {
-          const c = data.channel;
-          state.innerHTML = `<div class="channel">${c.thumbnail ? `<img src="${escapeHtml(c.thumbnail)}" alt="">` : ""}<div><strong>${escapeHtml(c.title)}</strong><br><span class="muted">مربوط ✅</span></div></div>`;
-          actions.innerHTML = `<button class="secondary" onclick="location.href='/api/auth/youtube'">إعادة الربط</button>`;
-        } else {
-          if (!error) state.textContent = "غير مربوط";
-          actions.innerHTML = `<button onclick="location.href='/api/auth/youtube'">ربط حساب YouTube</button>`;
-        }
-      } catch (_) {
-        state.textContent = "تعذر فحص حالة YouTube";
-      }
-    }
+<h1>🤖 وكيل التواصل الاجتماعي</h1>
+<div class="card">مرحباً <span id="user">...</span> <button class="alt" onclick="logout()">خروج</button></div>
+<div class="card">
+  <h3>منشور جديد (مسودة)</h3>
+  <select id="platform"><option>YouTube</option><option>Facebook</option><option>Instagram</option></select>
+  <textarea id="content" rows="4" placeholder="اكتب المنشور..."></textarea>
+  <button onclick="addPost()">حفظ كمسودة</button>
+  <div id="msg"></div>
+</div>
+<div class="card"><h3>منشوراتي</h3><div id="posts"></div></div>
+<script>
+const sb = supabase.createClient(
+  "https://rvwzwpennszchbvhboct.supabase.co",
+  "sb_publishable_W0Goga6-pKGR6ew_UhfIaA_qYY0S2ow"
+);
+const $ = id => document.getElementById(id);
 
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-    }
-
-    check();
-    loadYouTube();
-  </script>
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = "/login.html"; return; }
+  $("user").textContent = session.user.email;
+  loadPosts();
+}
+async function logout() {
+  await sb.auth.signOut();
+  location.href = "/login.html";
+}
+async function addPost() {
+  const content = $("content").value.trim();
+  if (!content) { $("msg").textContent = "اكتب شي حاجة أولاً"; return; }
+  const { error } = await sb.from("posts").insert({ platform: $("platform").value, content });
+  $("msg").textContent = error ? "خطأ: " + error.message : "تم الحفظ ✅";
+  if (!error) { $("content").value = ""; loadPosts(); }
+}
+async function loadPosts() {
+  const { data, error } = await sb.from("posts").select("*").order("created_at", { ascending: false });
+  const box = $("posts");
+  box.textContent = "";
+  if (error) { box.textContent = "خطأ: " + error.message; return; }
+  if (!data.length) { box.textContent = "ما كاين حتى منشور."; return; }
+  data.forEach(p => {
+    const d = document.createElement("div");
+    d.className = "post";
+    const s = document.createElement("small");
+    s.textContent = p.platform + " · " + p.status;
+    const t = document.createElement("div");
+    t.textContent = p.content;
+    d.append(s, t);
+    box.append(d);
+  });
+}
+init();
+</script>
 </body>
 </html>
