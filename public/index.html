@@ -12,13 +12,23 @@ textarea,select,input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0
 button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;margin-top:4px}
 button.alt{background:#334155}
 button.ai{background:#059669}
+button.yt{background:#dc2626}
 .post{border-top:1px solid #334155;padding:8px 0}
+.chan{display:flex;align-items:center;gap:10px;margin:8px 0}
+.chan img{width:48px;height:48px;border-radius:50%}
 small{color:#94a3b8}
 </style>
 </head>
 <body>
 <h1>🤖 وكيل التواصل الاجتماعي</h1>
 <div class="card">مرحباً <span id="user">...</span> <button class="alt" onclick="logout()">خروج</button></div>
+
+<div class="card">
+  <h3>حسابات التواصل</h3>
+  <div id="ytBox">YouTube: ...</div>
+  <div id="ytMsg"></div>
+</div>
+
 <div class="card">
   <h3>منشور جديد</h3>
   <select id="platform"><option>YouTube</option><option>Facebook</option><option>Instagram</option></select>
@@ -35,17 +45,105 @@ const sb = supabase.createClient(
   "sb_publishable_W0Goga6-pKGR6ew_UhfIaA_qYY0S2ow"
 );
 const $ = id => document.getElementById(id);
+let accessToken = "";
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.href = "/login.html"; return; }
+  accessToken = session.access_token;
   $("user").textContent = session.user.email;
+  showYoutubeResult();
+  loadYoutube();
   loadPosts();
 }
 async function logout() {
   await sb.auth.signOut();
   location.href = "/login.html";
 }
+
+function showYoutubeResult() {
+  const r = new URLSearchParams(location.search).get("youtube");
+  if (!r) return;
+  const texts = {
+    connected: "تم ربط YouTube ✅",
+    denied: "ما وافقتيش على الربط.",
+    invalid: "الطلب ما صالحش، عاود المحاولة.",
+    error: "وقع خطأ فالربط، عاود المحاولة."
+  };
+  $("ytMsg").textContent = texts[r] || "";
+  history.replaceState(null, "", "/");
+}
+
+async function loadYoutube() {
+  const box = $("ytBox");
+  box.textContent = "";
+  try {
+    const r = await fetch("/api/youtube/status", {
+      headers: { "Authorization": "Bearer " + accessToken }
+    });
+    const d = await r.json();
+    if (d.connected && d.channel) {
+      const row = document.createElement("div");
+      row.className = "chan";
+      if (d.channel.thumbnail) {
+        const img = document.createElement("img");
+        img.src = d.channel.thumbnail;
+        img.alt = "";
+        row.append(img);
+      }
+      const info = document.createElement("div");
+      const name = document.createElement("div");
+      name.textContent = "YouTube: " + d.channel.title + " ✅";
+      info.append(name);
+      if (d.channel.subscribers) {
+        const s = document.createElement("small");
+        s.textContent = d.channel.subscribers + " مشترك";
+        info.append(s);
+      }
+      row.append(info);
+      const b = document.createElement("button");
+      b.className = "alt";
+      b.textContent = "فصل";
+      b.onclick = disconnectYoutube;
+      box.append(row, b);
+    } else {
+      const t = document.createElement("div");
+      t.textContent = "YouTube: غير مربوط";
+      const b = document.createElement("button");
+      b.className = "yt";
+      b.textContent = "ربط YouTube";
+      b.onclick = connectYoutube;
+      box.append(t, b);
+    }
+  } catch (e) {
+    box.textContent = "تعذر تحميل حالة YouTube";
+  }
+}
+
+async function connectYoutube() {
+  $("ytMsg").textContent = "كنوجد الربط... ⏳";
+  try {
+    const r = await fetch("/api/youtube/connect", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + accessToken }
+    });
+    const d = await r.json();
+    if (!r.ok) { $("ytMsg").textContent = "خطأ: " + d.error; return; }
+    location.href = d.url;
+  } catch (e) {
+    $("ytMsg").textContent = "تعذر الاتصال بالخادم";
+  }
+}
+
+async function disconnectYoutube() {
+  await fetch("/api/youtube/status", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + accessToken }
+  });
+  $("ytMsg").textContent = "تم الفصل.";
+  loadYoutube();
+}
+
 async function generate() {
   const idea = $("idea").value.trim();
   if (!idea) { $("msg").textContent = "اكتب الفكرة أولاً"; return; }
