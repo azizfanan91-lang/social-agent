@@ -1,8 +1,35 @@
 const MODEL = "gemini-3.8-flash";
+const SUPABASE_URL = "https://rvwzwpennszchbvhboct.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_W0Goga6-pKGR6ew_UhfIaA_qYY0S2ow";
+
+async function getUser(token) {
+  try {
+    const r = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: "Bearer " + token
+      }
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
+  }
+
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) {
+    return res.status(401).json({ error: "Login required" });
+  }
+  const user = await getUser(token);
+  if (!user || !user.id) {
+    return res.status(401).json({ error: "Invalid session, please log in again" });
   }
 
   const key = process.env.GEMINI_API_KEY;
