@@ -1,3 +1,5 @@
+const MODEL = "gemini-3.8-flash";
+
 module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
@@ -13,7 +15,7 @@ module.exports = async (req, res) => {
 
   try {
     const r = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -22,9 +24,4 @@ module.exports = async (req, res) => {
     );
     const d = await r.json();
     if (!r.ok) return res.status(500).json({ error: (d.error && d.error.message) || "خطأ من Gemini" });
-    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    res.status(200).json({ text: text.trim() });
-  } catch (e) {
-    res.status(500).json({ error: "تعذر الاتصال" });
-  }
-};
+    const text = d.candidates?.[0]?.content?
