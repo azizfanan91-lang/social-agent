@@ -8,9 +8,10 @@
 <style>
 body{font-family:sans-serif;background:#0f172a;color:#fff;margin:0;padding:20px}
 .card{background:#1e293b;border-radius:12px;padding:16px;margin:12px 0}
-textarea,select{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border-radius:8px;border:0;font-size:16px}
-button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px}
+textarea,select,input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0;border-radius:8px;border:0;font-size:16px}
+button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;margin-top:4px}
 button.alt{background:#334155}
+button.ai{background:#059669}
 .post{border-top:1px solid #334155;padding:8px 0}
 small{color:#94a3b8}
 </style>
@@ -19,9 +20,11 @@ small{color:#94a3b8}
 <h1>🤖 وكيل التواصل الاجتماعي</h1>
 <div class="card">مرحباً <span id="user">...</span> <button class="alt" onclick="logout()">خروج</button></div>
 <div class="card">
-  <h3>منشور جديد (مسودة)</h3>
+  <h3>منشور جديد</h3>
   <select id="platform"><option>YouTube</option><option>Facebook</option><option>Instagram</option></select>
-  <textarea id="content" rows="4" placeholder="اكتب المنشور..."></textarea>
+  <input id="idea" placeholder="فكرة المنشور (مثلا: إطلاق منتج جديد)">
+  <button class="ai" onclick="generate()">✨ اكتب بالذكاء الاصطناعي</button>
+  <textarea id="content" rows="5" placeholder="المنشور غادي يبان هنا، وتقدر تعدلو..."></textarea>
   <button onclick="addPost()">حفظ كمسودة</button>
   <div id="msg"></div>
 </div>
@@ -43,12 +46,30 @@ async function logout() {
   await sb.auth.signOut();
   location.href = "/login.html";
 }
+async function generate() {
+  const idea = $("idea").value.trim();
+  if (!idea) { $("msg").textContent = "اكتب الفكرة أولاً"; return; }
+  $("msg").textContent = "كنكتب... ⏳";
+  try {
+    const r = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea, platform: $("platform").value })
+    });
+    const d = await r.json();
+    if (!r.ok) { $("msg").textContent = "خطأ: " + d.error; return; }
+    $("content").value = d.text;
+    $("msg").textContent = "تم ✅ عدل المنشور وحفظو.";
+  } catch (e) {
+    $("msg").textContent = "تعذر الاتصال بالخادم";
+  }
+}
 async function addPost() {
   const content = $("content").value.trim();
   if (!content) { $("msg").textContent = "اكتب شي حاجة أولاً"; return; }
   const { error } = await sb.from("posts").insert({ platform: $("platform").value, content });
   $("msg").textContent = error ? "خطأ: " + error.message : "تم الحفظ ✅";
-  if (!error) { $("content").value = ""; loadPosts(); }
+  if (!error) { $("content").value = ""; $("idea").value = ""; loadPosts(); }
 }
 async function loadPosts() {
   const { data, error } = await sb.from("posts").select("*").order("created_at", { ascending: false });
