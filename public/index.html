@@ -49,11 +49,16 @@ async function logout() {
 async function generate() {
   const idea = $("idea").value.trim();
   if (!idea) { $("msg").textContent = "اكتب الفكرة أولاً"; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = "/login.html"; return; }
   $("msg").textContent = "كنكتب... ⏳";
   try {
     const r = await fetch("/api/generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + session.access_token
+      },
       body: JSON.stringify({ idea, platform: $("platform").value })
     });
     const d = await r.json();
