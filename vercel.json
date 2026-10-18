@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/youtube/connect", "destination": "/api/youtube-connect" },
+    { "source": "/api/youtube/callback", "destination": "/api/youtube-callback" },
+    { "source": "/api/youtube/status", "destination": "/api/youtube-status" }
+  ]
+}
