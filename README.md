@@ -9,11 +9,17 @@
 ```text
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-YOUTUBE_REDIRECT_URI=https://t-rho.vercel.app/api/auth/youtube/callback
+YOUTUBE_REDIRECT_URI=https://social-agent-rho.vercel.app/api/youtube/callback
 YOUTUBE_SESSION_SECRET=ضع_قيمة_عشوائية_طويلة_جدا
 ```
 
-أنشئ OAuth Client من Google Cloud Console، واختر **Web application**، ثم أضف رابط إعادة التوجيه نفسه حرفيًا إلى **Authorized redirect URIs**. فعّل **YouTube Data API v3** في المشروع.
+أنشئ OAuth Client من Google Cloud Console، واختر **Web application**، ثم أضف هذا الرابط حرفيًا إلى **Authorized redirect URIs**:
+
+```text
+https://social-agent-rho.vercel.app/api/youtube/callback
+```
+
+فعّل **YouTube Data API v3** في مشروع Google Cloud، وأضف `fannanfanan8@gmail.com` ضمن **Test users** إذا كان التطبيق في وضع Testing.
 
 بعد إضافة المتغيرات وإعادة النشر:
 
