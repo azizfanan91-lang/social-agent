@@ -1,32 +1,19 @@
 # social-agent
 
-## ربط YouTube
+## ربط YouTube العام
 
-التطبيق يدعم الآن ربط قناة YouTube عبر Google OAuth للقراءة فقط.
+التطبيق يستعمل الآن YouTube RSS لقراءة القنوات العامة، لذلك لا يحتاج إلى Google OAuth أو Billing أو Test users.
 
-### متغيرات البيئة المطلوبة في Vercel
+1. افتح التطبيق وسجّل الدخول.
+2. أدخل رابط القناة من هذا النوع:
+   ```text
+   https://www.youtube.com/channel/UC...
+   ```
+3. أو أدخل `Channel ID` الذي يبدأ بـ `UC`.
+4. اضغط **ربط قناة عامة**.
 
-```text
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-YOUTUBE_REDIRECT_URI=https://social-agent-rho.vercel.app/api/youtube/callback
-YOUTUBE_SESSION_SECRET=ضع_قيمة_عشوائية_طويلة_جدا
-```
+سيعرض التطبيق اسم القناة وآخر 10 فيديوهات عامة. الإعداد محفوظ محليًا في المتصفح باستعمال `localStorage`.
 
-أنشئ OAuth Client من Google Cloud Console، واختر **Web application**، ثم أضف هذا الرابط حرفيًا إلى **Authorized redirect URIs**:
+### الحدود
 
-```text
-https://social-agent-rho.vercel.app/api/youtube/callback
-```
-
-فعّل **YouTube Data API v3** في مشروع Google Cloud، وأضف `fannanfanan8@gmail.com` ضمن **Test users** إذا كان التطبيق في وضع Testing.
-
-بعد إضافة المتغيرات وإعادة النشر:
-
-1. افتح التطبيق.
-2. اضغط **ربط حساب YouTube**.
-3. اختر حساب Google المرتبط بالقناة.
-4. وافق على صلاحية القراءة المطلوبة.
-5. سيعود التطبيق ويعرض اسم القناة وحالتها كمربوطة.
-
-لا تضع `GOOGLE_CLIENT_SECRET` أو `YOUTUBE_SESSION_SECRET` في ملفات الواجهة أو GitHub. الجلسة المشفّرة تحفظ حالة الربط ورموز OAuth داخل cookie آمنة؛ لا تُستخدم الرموز إلا لخدمات YouTube الخاصة بهذا التطبيق.
+هذا الوضع لا يدعم رفع الفيديوهات أو النشر أو تعديل القناة أو قراءة البيانات الخاصة. هذه العمليات تحتاج Google OAuth وصلاحيات YouTube المناسبة.
