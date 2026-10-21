@@ -16,8 +16,6 @@ button.yt{background:#dc2626}
 .post{border-top:1px solid #334155;padding:8px 0}
 .chan{display:flex;align-items:center;gap:10px;margin:8px 0}
 .chan img{width:48px;height:48px;border-radius:50%}
-.video{border-top:1px solid #334155;padding:10px 0}
-.video a{color:#c4b5fd;text-decoration:none}
 small{color:#94a3b8}
 </style>
 </head>
@@ -28,8 +26,6 @@ small{color:#94a3b8}
 <div class="card">
   <h3>حسابات التواصل</h3>
   <div id="ytBox">YouTube: ...</div>
-  <input id="channelInput" placeholder="رابط القناة أو Channel ID (UC...)" dir="ltr">
-  <button class="yt" onclick="connectPublicYoutube()">ربط قناة عامة</button>
   <div id="ytMsg"></div>
 </div>
 
@@ -80,58 +76,72 @@ function showYoutubeResult() {
 
 async function loadYoutube() {
   const box = $("ytBox");
-  const saved = localStorage.getItem("public_youtube_channel");
-  box.textContent = saved ? "القناة العامة محفوظة ✅" : "YouTube: غير مربوط";
-  if (saved) {
-    $("channelInput").value = saved;
-    try {
-      const r = await fetch("/api/youtube-public", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: saved })
-      });
-      if (r.ok) renderPublicYoutube(await r.json());
-    } catch (_) {}
+  box.textContent = "";
+  try {
+    const r = await fetch("/api/youtube/status", {
+      headers: { "Authorization": "Bearer " + accessToken }
+    });
+    const d = await r.json();
+    if (d.connected && d.channel) {
+      const row = document.createElement("div");
+      row.className = "chan";
+      if (d.channel.thumbnail) {
+        const img = document.createElement("img");
+        img.src = d.channel.thumbnail;
+        img.alt = "";
+        row.append(img);
+      }
+      const info = document.createElement("div");
+      const name = document.createElement("div");
+      name.textContent = "YouTube: " + d.channel.title + " ✅";
+      info.append(name);
+      if (d.channel.subscribers) {
+        const s = document.createElement("small");
+        s.textContent = d.channel.subscribers + " مشترك";
+        info.append(s);
+      }
+      row.append(info);
+      const b = document.createElement("button");
+      b.className = "alt";
+      b.textContent = "فصل";
+      b.onclick = disconnectYoutube;
+      box.append(row, b);
+    } else {
+      const t = document.createElement("div");
+      t.textContent = "YouTube: غير مربوط";
+      const b = document.createElement("button");
+      b.className = "yt";
+      b.textContent = "ربط YouTube";
+      b.onclick = connectYoutube;
+      box.append(t, b);
+    }
+  } catch (e) {
+    box.textContent = "تعذر تحميل حالة YouTube";
   }
 }
 
-async function connectPublicYoutube() {
-  const channel = $("channelInput").value.trim();
-  if (!channel) { $("ytMsg").textContent = "دخل رابط القناة أو Channel ID أولاً"; return; }
-  $("ytMsg").textContent = "كنفحص القناة... ⏳";
+async function connectYoutube() {
+  $("ytMsg").textContent = "كنوجد الربط... ⏳";
   try {
-    const r = await fetch("/api/youtube-public", {
+    const r = await fetch("/api/youtube/connect", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel })
+      headers: { "Authorization": "Bearer " + accessToken }
     });
     const d = await r.json();
     if (!r.ok) { $("ytMsg").textContent = "خطأ: " + d.error; return; }
-    localStorage.setItem("public_youtube_channel", channel);
-    renderPublicYoutube(d);
-    $("ytMsg").textContent = "تم ربط القناة العامة ✅";
+    location.href = d.url;
   } catch (e) {
     $("ytMsg").textContent = "تعذر الاتصال بالخادم";
   }
 }
 
-function renderPublicYoutube(data) {
-  const box = $("ytBox");
-  box.textContent = "";
-  const title = document.createElement("div");
-  title.textContent = "YouTube: " + data.channel.title + " ✅";
-  box.append(title);
-  data.videos.forEach((video) => {
-    const row = document.createElement("div");
-    row.className = "video";
-    const link = document.createElement("a");
-    link.href = video.url;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = video.title;
-    row.append(link);
-    box.append(row);
+async function disconnectYoutube() {
+  await fetch("/api/youtube/status", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + accessToken }
   });
+  $("ytMsg").textContent = "تم الفصل.";
+  loadYoutube();
 }
 
 async function generate() {
